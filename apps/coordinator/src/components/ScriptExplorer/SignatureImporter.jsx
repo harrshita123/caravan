@@ -434,7 +434,9 @@ class SignatureImporter extends React.Component {
             inputs[inputIndex].amountSats,
           );
         } catch (e) {
-          errback(`Signature for input ${inputNumber} is invalid: ${e.message}`);
+          errback(
+            `Signature for input ${inputNumber} is invalid: ${e.message}`,
+          );
           return;
         }
         if (publicKey) {
@@ -448,7 +450,7 @@ class SignatureImporter extends React.Component {
 
             if (
               finalizedSignatureImporter.signature[inputIndex] ===
-              inputSignature ||
+                inputSignature ||
               finalizedSignatureImporter.publicKeys[inputIndex] === publicKey
             ) {
               errback(
