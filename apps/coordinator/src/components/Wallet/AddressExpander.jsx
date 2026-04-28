@@ -27,7 +27,16 @@ import {
   multisigAddressType,
   Network,
 } from "@caravan/bitcoin";
-import { PENDING, ACTIVE, ConfirmMultisigAddress } from "@caravan/wallets";
+import {
+  JADE,
+  BITBOX,
+  TREZOR,
+  LEDGER,
+  COLDCARD,
+  PENDING,
+  ACTIVE,
+  ConfirmMultisigAddress,
+} from "@caravan/wallets";
 import LaunchIcon from "@mui/icons-material/Launch";
 import UTXOSet from "../ScriptExplorer/UTXOSet";
 import MultisigDetails from "../MultisigDetails";
@@ -159,11 +168,11 @@ class AddressExpander extends React.Component {
     return (
       Object.values(extendedPublicKeyImporters).filter(
         (importer) =>
-          importer.method === "trezor" ||
-          importer.method === "ledger" ||
-          importer.method === "bitbox" ||
-          importer.method === "jade" ||
-          importer.method === "coldcard",
+          importer.method === TREZOR ||
+          importer.method === LEDGER ||
+          importer.method === BITBOX ||
+          importer.method === JADE ||
+          importer.method === COLDCARD,
       ).length > 0
     );
   };
@@ -319,6 +328,19 @@ class AddressExpander extends React.Component {
               </Box>
             )}
 
+            {this.isManualConfirmationActive() && (
+              <Box mt={2}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  onClick={this.completeManualConfirmation}
+                >
+                  I Verified This Address
+                </Button>
+              </Box>
+            )}
+
             {(interactionMessage !== "" || interactionError !== "") && (
               <Box mt={2}>
                 <Button size="large" onClick={this.resetInteractionState}>
@@ -340,21 +362,35 @@ class AddressExpander extends React.Component {
     });
   };
 
+  isManualConfirmationActive = () => {
+    const { interactionState, interactionMessage, interactionError } =
+      this.state;
+    return (
+      this.interaction?.manual &&
+      interactionState === ACTIVE &&
+      interactionMessage === "" &&
+      interactionError === ""
+    );
+  };
+
+  completeManualConfirmation = () => {
+    this.setState({
+      interactionState: ACTIVE,
+      interactionMessage: "Success",
+      interactionError: "",
+    });
+  };
+
   confirmOnDevice = async () => {
     this.setState({ interactionState: ACTIVE });
     const { node } = this.props;
     const { multisig } = node;
+    if (this.interaction.manual) {
+      return;
+    }
+
     try {
       const confirmed = await this.interaction.run();
-      if (confirmed && confirmed.manual) {
-        this.setState({
-          interactionState: ACTIVE,
-          interactionMessage: confirmed.successMessage || "Verify the address on your device.",
-          interactionError: "",
-        });
-        return;
-      }
-
       if (
         confirmed &&
         confirmed.address === multisig.address &&
@@ -448,11 +484,13 @@ AddressExpander.propTypes = {
   totalSigners: PropTypes.number.isRequired,
   setSpendCheckbox: PropTypes.func,
   feeRate: PropTypes.string,
+  walletName: PropTypes.string,
 };
 
 AddressExpander.defaultProps = {
   network: Network.TESTNET,
-  setSpendCheckbox: () => { },
+  setSpendCheckbox: () => {},
+  walletName: "",
 };
 
 function mapStateToProps(state) {
